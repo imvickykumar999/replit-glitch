@@ -7,9 +7,12 @@ import json
 import time
 import random
 import threading
+import os
 
 ADDR = "0.0.0.0"
 PORT = 8000
+# PORT = int(os.environ.get("PORT", 8000))
+
 MAX_PLAYERS = 10
 MSG_SIZE = 2048
 
@@ -91,7 +94,13 @@ def handle_messages(identifier: str):
             player_info = players[player_id]
             player_conn: socket.socket = player_info["socket"]
             try:
-                player_conn.send(json.dumps({"id": identifier, "object": "player", "joined": False, "left": True}).encode("utf8"))
+                player_conn.send(
+                    json.dumps({
+                        "id": identifier,
+                        "object": "player",
+                        "joined": False,
+                        "left": True
+                    }).encode("utf8"))
             except OSError:
                 pass
 
@@ -113,7 +122,13 @@ def main():
         new_id = generate_id(players, MAX_PLAYERS)
         conn.send(new_id.encode("utf8"))
         username = conn.recv(MSG_SIZE).decode("utf8")
-        new_player_info = {"socket": conn, "username": username, "position": (0, 1, 0), "rotation": 0, "health": 100}
+        new_player_info = {
+            "socket": conn,
+            "username": username,
+            "position": (0, 1, 0),
+            "rotation": 0,
+            "health": 100
+        }
 
         # Tell existing players about new player
         for player_id in players:
@@ -121,15 +136,16 @@ def main():
                 player_info = players[player_id]
                 player_conn: socket.socket = player_info["socket"]
                 try:
-                    player_conn.send(json.dumps({
-                        "id": new_id,
-                        "object": "player",
-                        "username": new_player_info["username"],
-                        "position": new_player_info["position"],
-                        "health": new_player_info["health"],
-                        "joined": True,
-                        "left": False
-                    }).encode("utf8"))
+                    player_conn.send(
+                        json.dumps({
+                            "id": new_id,
+                            "object": "player",
+                            "username": new_player_info["username"],
+                            "position": new_player_info["position"],
+                            "health": new_player_info["health"],
+                            "joined": True,
+                            "left": False
+                        }).encode("utf8"))
                 except OSError:
                     pass
 
@@ -138,15 +154,16 @@ def main():
             if player_id != new_id:
                 player_info = players[player_id]
                 try:
-                    conn.send(json.dumps({
-                        "id": player_id,
-                        "object": "player",
-                        "username": player_info["username"],
-                        "position": player_info["position"],
-                        "health": player_info["health"],
-                        "joined": True,
-                        "left": False
-                    }).encode("utf8"))
+                    conn.send(
+                        json.dumps({
+                            "id": player_id,
+                            "object": "player",
+                            "username": player_info["username"],
+                            "position": player_info["position"],
+                            "health": player_info["health"],
+                            "joined": True,
+                            "left": False
+                        }).encode("utf8"))
                     time.sleep(0.1)
                 except OSError:
                     pass
@@ -155,7 +172,9 @@ def main():
         players[new_id] = new_player_info
 
         # Start thread to receive messages from client
-        msg_thread = threading.Thread(target=handle_messages, args=(new_id,), daemon=True)
+        msg_thread = threading.Thread(target=handle_messages,
+                                      args=(new_id, ),
+                                      daemon=True)
         msg_thread.start()
 
         print(f"New connection from {addr}, assigned ID: {new_id}...")
@@ -164,7 +183,7 @@ def main():
 if __name__ == "__main__":
     try:
         main()
-    except KeyboardInterrupt: # Press CTRL + PAUSE/BREAK Key to exit
+    except KeyboardInterrupt:  # Press CTRL + PAUSE/BREAK Key to exit
         pass
     except SystemExit:
         pass
